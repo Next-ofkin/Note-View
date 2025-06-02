@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dastrings Note - Interactive Project Overview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Slate Blue (BG: #F8F7F4, Text: #333333, Primary: #4A6FA5, Secondary: #A3B18A) -->
+    <!-- Application Structure Plan: A single-page application with a top navigation bar to switch between thematic sections: Overview, User Roles, Features, and System Architecture. This tabbed structure is chosen over a long scroll to provide quick, logical access to different facets of the complex project plan. Key interactions include a role-switcher to dynamically display workflows and feature lists, and a clickable database schema explorer to make the technical details digestible. This design prioritizes user-guided exploration of the project's structure. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: User Roles & Features -> Goal: Compare -> Viz: Horizontal Bar Chart (Chart.js) -> Interaction: Hover for details -> Justification: Quick visual comparison of role scope.
+        - Report Info: System-Wide Capabilities -> Goal: Inform/Proportion -> Viz: Donut Chart (Chart.js) -> Interaction: Clickable legend to filter table -> Justification: Show the breakdown of feature types.
+        - Report Info: Workflows -> Goal: Organize/Explain -> Viz: HTML/CSS/Flexbox diagram -> Interaction: Displays based on selected user role -> Justification: Clear, step-by-step visual of processes without using restricted SVG/Mermaid.
+        - Report Info: Database Schema -> Goal: Organize/Explore -> Viz: Interactive list (HTML/JS) -> Interaction: Click to expand/collapse table details -> Justification: Manages complexity and avoids overwhelming the user with a wall of text. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4;
+            color: #333333;
+            -webkit-tap-highlight-color: transparent; /* Improve touch feedback */
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+            white-space: nowrap; /* Prevent nav links from breaking mid-word */
+        }
+        .nav-link.active {
+            color: #4A6FA5;
+            border-bottom-color: #4A6FA5;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* 12px */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07); /* Softer shadow */
+            transition: box-shadow 0.3s, transform 0.3s;
+        }
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            transform: translateY(-2px);
+        }
+        .role-button {
+            transition: background-color 0.3s, color 0.3s, transform 0.3s;
+        }
+        .role-button.active {
+            background-color: #4A6FA5 !important;
+            color: #ffffff !important;
+            transform: translateY(-1px); /* Subtle active state */
+        }
+        .workflow-step {
+            position: relative;
+            padding-left: 1.75rem; /* Increased for better touch */
+            padding-bottom: 1.25rem; 
+        }
+        .workflow-step:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 0.45rem; 
+            top: 0.45rem; 
+            width: 2px;
+            height: calc(100% - 0.25rem); /* Adjust line height */
+            background-color: #D1D5DB; 
+        }
+        .workflow-step-dot {
+            position: absolute;
+            left: 0;
+            top: 0.375rem; 
+            width: 1rem; /* 16px */
+            height: 1rem; /* 16px */
+            border-radius: 9999px; 
+            background-color: #4A6FA5; 
+            border: 3px solid #F8F7F4; /* Match body background for cutout effect */
+        }
+        .db-table {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .db-table:hover {
+            background-color: #F0F2F5; /* Slightly different hover */
+        }
+        .db-table-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out; /* Smoother transition */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px; /* Reduced max-width for better focus */
+            margin-left: auto;
+            margin-right: auto;
+            height: 220px; /* Base height for mobile */
+            max-height: 280px; /* Max height for mobile */
+        }
+         @media (min-width: 480px) { /* Custom breakpoint for slightly larger mobiles */
+            .chart-container {
+                height: 250px;
+                max-height: 320px;
+            }
+        }
+         @media (min-width: 640px) { /* sm breakpoint */
+            .chart-container {
+                height: 280px;
+                max-height: 350px;
+            }
+        }
+         @media (min-width: 768px) { /* md breakpoint */
+            .chart-container {
+                height: 320px;
+                max-height: 380px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8">
+        
+        <header class="text-center mb-6 sm:mb-8">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800">Dastrings Note</h1>
+            <p class="mt-1 sm:mt-2 text-sm sm:text-md md:text-lg text-gray-600">Interactive Project Overview</p>
+        </header>
+
+        <nav class="flex overflow-x-auto pb-2 mb-6 sm:mb-8 border-b justify-start sm:justify-center">
+            <button data-target="overview" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent active text-xs sm:text-sm">Overview</button>
+            <button data-target="roles" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent text-xs sm:text-sm">User Roles & Flows</button>
+            <button data-target="features" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent text-xs sm:text-sm">Features</button>
+            <button data-target="architecture" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent text-xs sm:text-sm">System Architecture</button>
+            <button data-target="impact" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent text-xs sm:text-sm">Why It Matters</button>
+        </nav>
+
+        <main>
+            <section id="overview" class="content-section">
+                <div class="grid md:grid-cols-2 gap-4 md:gap-6 items-start">
+                    <div class="card p-4 sm:p-6">
+                        <h2 class="text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-[#4A6FA5]">🧠 What is Dastrings Note?</h2>
+                        <p class="text-gray-700 leading-relaxed text-xs sm:text-sm">
+                            Dastrings Note is a modern, responsive, Progressive Web App (PWA) built to digitize and simplify the process of lesson note creation, review, and archival in schools. It introduces a clear, role-based system where teachers, school admins, and super admins each have defined tasks — enabling structured educational planning and communication.
+                        </p>
+                    </div>
+                    <div class="card p-4 sm:p-6">
+                        <h2 class="text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-[#4A6FA5]">🌍 Who is it for?</h2>
+                        <ul class="space-y-2 sm:space-y-3">
+                            <li class="flex items-start">
+                                <span class="text-lg sm:text-xl mr-2 sm:mr-3">🧑‍🏫</span>
+                                <div>
+                                    <h3 class="font-semibold text-sm sm:text-md">Teachers</h3>
+                                    <p class="text-gray-600 text-xs sm:text-sm">Create and manage their weekly lesson plans.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-lg sm:text-xl mr-2 sm:mr-3">🧑‍💼</span>
+                                <div>
+                                    <h3 class="font-semibold text-sm sm:text-md">School Admins</h3>
+                                    <p class="text-gray-600 text-xs sm:text-sm">Review teacher notes and manage staff.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-lg sm:text-xl mr-2 sm:mr-3">🧑‍⚖️</span>
+                                <div>
+                                    <h3 class="font-semibold text-sm sm:text-md">Super Admins</h3>
+                                    <p class="text-gray-600 text-xs sm:text-sm">Platform owners or government bodies overseeing schools.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="roles" class="content-section hidden">
+                <div class="text-center mb-6 sm:mb-8">
+                     <h2 class="text-xl sm:text-2xl md:text-3xl font-bold">User Roles & Workflows</h2>
+                     <p class="mt-1 sm:mt-2 text-gray-600 text-xs sm:text-sm">Select a role to explore their specific features and operational flow.</p>
+                </div>
+                <div class="flex flex-wrap justify-center gap-2 mb-4 sm:mb-6">
+                    <button class="role-button active bg-white text-gray-700 font-semibold py-2 px-3 rounded-full shadow hover:bg-gray-100 text-xs" data-role="superadmin">Super Admin</button>
+                    <button class="role-button bg-white text-gray-700 font-semibold py-2 px-3 rounded-full shadow hover:bg-gray-100 text-xs" data-role="schooladmin">School Admin</button>
+                    <button class="role-button bg-white text-gray-700 font-semibold py-2 px-3 rounded-full shadow hover:bg-gray-100 text-xs" data-role="teacher">Teacher</button>
+                </div>
+
+                <div class="grid lg:grid-cols-5 gap-4 md:gap-6">
+                    <div id="role-details" class="lg:col-span-3 card p-4 sm:p-6">
+                    </div>
+                    <div class="lg:col-span-2 card p-4 sm:p-6">
+                         <h3 class="text-md sm:text-lg font-bold mb-3 text-center">Features per Role</h3>
+                         <div class="chart-container">
+                            <canvas id="rolesFeaturesChart"></canvas>
+                         </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="features" class="content-section hidden">
+                <div class="text-center mb-6 sm:mb-8">
+                     <h2 class="text-xl sm:text-2xl md:text-3xl font-bold">System-Wide Capabilities</h2>
+                     <p class="mt-1 sm:mt-2 text-gray-600 text-xs sm:text-sm">An overview of the platform's core technical and user-facing features.</p>
+                </div>
+                 <div class="card p-4 sm:p-6">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs sm:text-sm" id="features-table">
+                            <thead>
+                                <tr class="border-b">
+                                    <th class="py-2 px-3 sm:py-3 sm:px-4 font-semibold">Feature</th>
+                                    <th class="py-2 px-3 sm:py-3 sm:px-4 font-semibold text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="architecture" class="content-section hidden">
+                 <div class="text-center mb-6 sm:mb-8">
+                     <h2 class="text-xl sm:text-2xl md:text-3xl font-bold">System Architecture</h2>
+                     <p class="mt-1 sm:mt-2 text-gray-600 text-xs sm:text-sm">The technical foundation of Dastrings Note, including the database schema and technology stack.</p>
+                </div>
+                <div class="card p-4 sm:p-6">
+                     <h3 class="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-[#4A6FA5]">Database Schema (Conceptual)</h3>
+                     <p class="text-gray-600 mb-3 sm:mb-4 text-xs sm:text-sm">Click table names to expand/collapse details. This model supports scalability and data integrity.</p>
+                     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4" id="db-schema-container">
+                        
+                     </div>
+                </div>
+            </section>
+
+            <section id="impact" class="content-section hidden">
+                <div class="text-center mb-6 sm:mb-8">
+                     <h2 class="text-xl sm:text-2xl md:text-3xl font-bold">🚀 Why This Matters</h2>
+                     <p class="mt-1 sm:mt-2 text-gray-600 text-xs sm:text-sm">The tangible benefits of implementing Dastrings Note in an educational ecosystem.</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4 sm:gap-6">
+                    <div class="card p-3 sm:p-4 flex items-start">
+                        <span class="text-xl sm:text-2xl mr-2 sm:mr-3">📄</span>
+                        <div>
+                            <h3 class="font-semibold text-sm sm:text-md">Eliminates Paper</h3>
+                            <p class="text-gray-600 text-xs sm:text-sm">Drastically reduces administrative overhead and environmental impact by digitizing lesson planning.</p>
+                        </div>
+                    </div>
+                    <div class="card p-3 sm:p-4 flex items-start">
+                        <span class="text-xl sm:text-2xl mr-2 sm:mr-3">⏱️</span>
+                        <div>
+                            <h3 class="font-semibold text-sm sm:text-md">Saves Time & Improves Collaboration</h3>
+                            <p class="text-gray-600 text-xs sm:text-sm">Streamlines the feedback loop between teachers and school leaders, fostering a more collaborative environment.</p>
+                        </div>
+                    </div>
+                    <div class="card p-3 sm:p-4 flex items-start">
+                        <span class="text-xl sm:text-2xl mr-2 sm:mr-3">🗃️</span>
+                        <div>
+                            <h3 class="font-semibold text-sm sm:text-md">Centralized Data System</h3>
+                            <p class="text-gray-600 text-xs sm:text-sm">Builds a valuable, long-term academic data repository for review, compliance checks, and audits.</p>
+                        </div>
+                    </div>
+                    <div class="card p-3 sm:p-4 flex items-start">
+                        <span class="text-xl sm:text-2xl mr-2 sm:mr-3">👁️</span>
+                        <div>
+                            <h3 class="font-semibold text-sm sm:text-md">Complete Visibility</h3>
+                            <p class="text-gray-600 text-xs sm:text-sm">Gives educational authorities unprecedented, real-time insight into curriculum compliance and activity.</p>
+                        </div>
+                    </div>
+                    <div class="card p-3 sm:p-4 flex items-start">
+                        <span class="text-xl sm:text-2xl mr-2 sm:mr-3">🌐</span>
+                        <div>
+                            <h3 class="font-semibold text-sm sm:text-md">Works in Low-Connectivity Areas</h3>
+                            <p class="text-gray-600 text-xs sm:text-sm">PWA and offline-first capabilities ensure the platform is reliable even with unstable internet.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const appData = {
+        roles: {
+            superadmin: {
+                title: '🧑‍⚖️ Super Admin',
+                description: 'System-level operator with full control over schools and users.',
+                features: [
+                    'View, approve, reject, or suspend any school',
+                    'View all users (Admins and Teachers)',
+                    'Edit user roles (e.g., promote Teacher to Admin)',
+                    'Assign Admins to schools',
+                    'Reset user passwords',
+                    'Monitor platform-wide stats (notes, users, activity)',
+                    'Download reports (CSV, PDF)',
+                    'Send announcements to Admins',
+                    'Set academic term/week defaults globally',
+                    'View system activity logs',
+                ],
+                workflow: [
+                    { title: 'Manual Creation', description: 'Account is created manually via a backend or admin console.' },
+                    { title: 'Oversee Platform', description: 'Monitors platform settings, schools, and user roles.' },
+                    { title: 'Manage Schools', description: 'Approves or suspends school registrations as they come in.' },
+                    { title: 'System Maintenance', description: 'Performs high-level tasks like password resets and sends announcements.' },
+                ]
+            },
+            schooladmin: {
+                title: '🧑‍💼 School Admin',
+                description: 'Manages their own school – teachers, notes, setup, and reviews.',
+                features: [
+                    'School profile created on signup',
+                    'Set academic calendar (term, week)',
+                    'Add classes and subjects',
+                    'Invite teachers via email',
+                    'Assign subjects and classes to teachers',
+                    'View and review all lesson notes',
+                    'Approve or reject notes with feedback',
+                    'Use threaded comments for revision discussion',
+                    'View/download submission logs',
+                    'Export school-level reports (CSV, PDF)',
+                    'Lock note submission after deadline',
+                    'Send reminders to teachers',
+                ],
+                workflow: [
+                    { title: 'Self-Onboarding', description: 'Signs up on the platform and provides school details.' },
+                    { title: 'School Setup', description: 'Sets the current term/week and adds subjects and classes for the school.' },
+                    { title: 'Invite Teachers', description: 'Sends email invitations to teachers to join the platform.' },
+                    { title: 'Review Cycle', description: 'Reviews submitted lesson notes, providing feedback, and approving or rejecting them.' },
+                    { title: 'Manage Staff', description: 'Assigns subjects/classes to teachers and monitors their submission status.' },
+                ]
+            },
+            teacher: {
+                title: '👩‍🏫 Teacher',
+                description: 'Creates and submits lesson notes for assigned subjects.',
+                features: [
+                    'First login via email invite → set password',
+                    'View assigned subjects and classes',
+                    'Edit personal profile (name, photo, password)',
+                    'Create lesson notes with rich text, objectives, and materials',
+                    'Add file attachments (PDF, images) to notes',
+                    'Submit notes for review',
+                    'Receive threaded feedback from Admin',
+                    'Edit and resubmit notes based on feedback',
+                    'View full submission history',
+                    'Download approved notes as PDF',
+                ],
+                 workflow: [
+                    { title: 'Accept Invite', description: 'Receives an email invite, clicks the link to set a password and log in.' },
+                    { title: 'Profile Setup', description: 'Profile image is pulled from email or uploaded manually. Can edit profile info.' },
+                    { title: 'Create Note', description: 'Creates a weekly lesson note for an assigned subject using the rich text editor.' },
+                    { title: 'Submit for Review', description: 'Submits the completed note to the School Admin.' },
+                    { title: 'Revise & Resubmit', description: 'Receives feedback, makes edits, and resubmits until the note is approved.' },
+                ]
+            },
+        },
+        features: [
+            { name: 'Responsive design', status: '✅' },
+            { name: 'Progressive Web App (PWA)', status: '✅' },
+            { name: 'Role-based access control', status: '✅' },
+            { name: 'Multi-school support', status: '✅' },
+            { name: 'Secure authentication', status: '✅' },
+            { name: 'Notifications', status: '✅' },
+            { name: '2-way feedback system', status: '✅' },
+            { name: 'Profile editing', status: '✅' },
+            { name: 'Flexible email providers', status: '✅' },
+        ],
+        dbSchema: {
+            users: { description: 'Stores user profiles and roles.', columns: ['id (PK)', 'email', 'full_name', 'avatar_url', 'role', 'school_id (FK)'] },
+            schools: { description: 'Contains information about each registered school.', columns: ['id (PK)', 'name', 'details', 'is_approved', 'current_term', 'current_week'] },
+            teacher_invites: { description: 'Manages pending invitations for teachers.', columns: ['id (PK)', 'school_id (FK)', 'email', 'token', 'expires_at', 'status'] },
+            classes: { description: 'School-specific classes (e.g., Primary 1A).', columns: ['id (PK)', 'school_id (FK)', 'name'] },
+            subjects: { description: 'School-specific subjects (e.g., Mathematics).', columns: ['id (PK)', 'school_id (FK)', 'name'] },
+            teacher_assignments: { description: 'Links teachers to subjects and classes.', columns: ['id (PK)', 'teacher_user_id (FK)', 'subject_id (FK)', 'class_id (FK)'] },
+            lesson_notes: { description: 'The core table for all lesson notes content.', columns: ['id (PK)', 'teacher_id (FK)', 'school_id (FK)', 'subject_id (FK)', 'class_id (FK)', 'term', 'week', 'content_json', 'status'] },
+            attachments: { description: 'Manages files attached to lesson notes.', columns: ['id (PK)', 'note_id (FK)', 'storage_path'] },
+            feedback_comments: { description: 'Stores the threaded discussion for each note.', columns: ['id (PK)', 'note_id (FK)', 'user_id (FK)', 'comment', 'parent_id (FK)'] },
+            activity_logs: { description: 'Tracks significant actions across the platform.', columns: ['id (PK)', 'user_id (FK)', 'action', 'details', 'timestamp'] }
+        }
+    };
+
+    const contentSections = document.querySelectorAll('.content-section');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    function switchTab(targetId) {
+        contentSections.forEach(section => {
+            section.classList.toggle('hidden', section.id !== targetId);
+        });
+        navLinks.forEach(link => {
+            link.classList.toggle('active', link.dataset.target === targetId);
+        });
+        // Scroll to top of content for better UX on tab switch
+        // window.scrollTo({ top: document.querySelector('nav').offsetHeight, behavior: 'smooth' });
+    }
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => switchTab(link.dataset.target));
+    });
+
+    const roleButtons = document.querySelectorAll('.role-button');
+    const roleDetailsContainer = document.getElementById('role-details');
+
+    function updateRoleContent(role) {
+        const roleData = appData.roles[role];
+        if (!roleData) return;
+        
+        let featuresHtml = roleData.features.map(feature => 
+            `<li class="flex items-start text-xs sm:text-sm">
+                <span class="text-green-500 mr-2 mt-0.5 sm:mt-1">✓</span>
+                <span>${feature}</span>
+            </li>`
+        ).join('');
+        
+        let workflowHtml = roleData.workflow.map(step => 
+            `<div class="workflow-step">
+                <div class="workflow-step-dot"></div>
+                <h4 class="font-semibold text-gray-800 text-sm sm:text-base">${step.title}</h4>
+                <p class="text-xs sm:text-sm text-gray-600">${step.description}</p>
+            </div>`
+        ).join('');
+
+        roleDetailsContainer.innerHTML = `
+            <h3 class="text-lg sm:text-xl font-bold mb-1">${roleData.title}</h3>
+            <p class="text-gray-600 mb-3 sm:mb-4 text-xs sm:text-sm">${roleData.description}</p>
+            
+            <div class="mb-4 sm:mb-6">
+                <h4 class="font-bold text-sm sm:text-md mb-2 sm:mb-3 text-[#4A6FA5]">Key Features:</h4>
+                <ul class="space-y-1.5 sm:space-y-2 text-gray-700">${featuresHtml}</ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm sm:text-md mb-2 sm:mb-3 text-[#4A6FA5]">High-Level Workflow:</h4>
+                <div class="space-y-3 sm:space-y-4">${workflowHtml}</div>
+            </div>
+        `;
+        
+        roleButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.role === role);
+        });
+    }
+    
+    roleButtons.forEach(button => {
+        button.addEventListener('click', () => updateRoleContent(button.dataset.role));
+    });
+
+    let rolesChartInstance;
+    function renderRolesChart() {
+        const ctx = document.getElementById('rolesFeaturesChart').getContext('2d');
+        if (rolesChartInstance) {
+            rolesChartInstance.destroy();
+        }
+        rolesChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.values(appData.roles).map(r => r.title.replace(/🧑‍⚖️|🧑‍💼|👩‍🏫\s*/g, '').trim()), // Shorter labels
+                datasets: [{
+                    label: '# of Features',
+                    data: Object.values(appData.roles).map(r => r.features.length),
+                    backgroundColor: ['#A3B18A', '#4A6FA5', '#6B7280'],
+                    borderColor: '#ffffff',
+                    borderWidth: 1,
+                    borderRadius: 3,
+                    barThickness: 'flex',
+                    maxBarThickness: 25, // Control bar thickness
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#333333',
+                        titleFont: { size: 11, weight: 'bold', family: "'Inter', sans-serif" },
+                        bodyFont: { size: 10, family: "'Inter', sans-serif" },
+                        padding: 6,
+                        cornerRadius: 3,
+                        displayColors: false,
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { display: false },
+                        ticks: { font: { family: "'Inter', sans-serif", size: 9 } }
+                    },
+                    y: {
+                        grid: { display: true, color: '#E5E7EB', drawBorder: false },
+                        ticks: { 
+                            font: { family: "'Inter', sans-serif", size: 10 },
+                            autoSkip: false,
+                            maxRotation: 0,
+                            minRotation: 0,
+                            callback: function(value) { // Wrap long labels on y-axis
+                                const label = this.getLabelForValue(value);
+                                if (label.length > 15) { // Adjust character limit as needed
+                                    return label.match(new RegExp('.{1,' + 15 + '}', 'g'));
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                layout: {
+                    padding: { top: 5, bottom: 5, left: 5, right: 10 } // Adjust padding
+                }
+            }
+        });
+    }
+
+    function renderFeaturesTable() {
+        const tableBody = document.querySelector('#features-table tbody');
+        const rows = appData.features.map(feature => `
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 px-3 sm:py-3 sm:px-4">${feature.name}</td>
+                <td class="py-2 px-3 sm:py-3 sm:px-4 text-center">${feature.status}</td>
+            </tr>
+        `).join('');
+        tableBody.innerHTML = rows;
+    }
+
+    function renderDbSchema() {
+        const container = document.getElementById('db-schema-container');
+        const schemaHtml = Object.entries(appData.dbSchema).map(([tableName, tableData]) => {
+            const columnsHtml = tableData.columns.map(col => `
+                <li class="text-xs sm:text-sm text-gray-600">${col.replace('(PK)', '<span class=\"text-yellow-600 font-semibold\">(PK)</span>').replace('(FK)', '<span class=\"text-blue-600 font-semibold\">(FK)</span>')}</li>
+            `).join('');
+            return `
+                <div class="db-table-item border rounded-md overflow-hidden bg-white">
+                    <div class="db-table p-3 sm:p-4 bg-gray-50 hover:bg-gray-100 font-semibold flex justify-between items-center text-xs sm:text-sm">
+                        <span>${tableName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                        <span class="text-md sm:text-lg text-gray-400 transform transition-transform duration-300">+</span>
+                    </div>
+                    <div class="db-table-details bg-white px-3 sm:px-4 pt-0 pb-2 sm:pb-3">
+                        <p class="text-gray-700 italic pt-2 sm:pt-3 pb-1 sm:pb-2 text-xs sm:text-sm">${tableData.description}</p>
+                        <ul class="list-disc list-inside space-y-0.5 sm:space-y-1 pl-2">${columnsHtml}</ul>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        container.innerHTML = schemaHtml;
+
+        document.querySelectorAll('.db-table').forEach(header => {
+            header.addEventListener('click', () => {
+                const details = header.nextElementSibling;
+                const icon = header.querySelector('span:last-child');
+                const itemContainer = header.closest('.db-table-item');
+                
+                document.querySelectorAll('.db-table-details').forEach(otherDetail => {
+                    if (otherDetail !== details && otherDetail.style.maxHeight !== '0px') {
+                        otherDetail.style.maxHeight = '0px';
+                        otherDetail.previousElementSibling.querySelector('span:last-child').style.transform = 'rotate(0deg)';
+                        otherDetail.closest('.db-table-item').classList.remove('shadow-lg');
+                    }
+                });
+
+                if (details.style.maxHeight && details.style.maxHeight !== '0px') {
+                    details.style.maxHeight = '0px';
+                    icon.style.transform = 'rotate(0deg)';
+                    itemContainer.classList.remove('shadow-lg');
+                } else {
+                    details.style.maxHeight = details.scrollHeight + 'px';
+                    icon.style.transform = 'rotate(45deg)';
+                    itemContainer.classList.add('shadow-lg');
+                }
+            });
+        });
+    }
+
+    updateRoleContent('superadmin');
+    renderRolesChart();
+    renderFeaturesTable();
+    renderDbSchema();
+});
+</script>
+</body>
+</html>
