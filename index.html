@@ -10,32 +10,69 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Warm Neutrals with Slate Blue (BG: #F8F7F4, Text: #333333, Primary: #4A6FA5, Secondary: #A3B18A) -->
-    <!-- Application Structure Plan: A single-page application with a top navigation bar to switch between thematic sections: Overview, User Roles, Features, and System Architecture. This tabbed structure is chosen over a long scroll to provide quick, logical access to different facets of the complex project plan. Key interactions include a role-switcher to dynamically display workflows and feature lists, and a clickable database schema explorer to make the technical details digestible. This design prioritizes user-guided exploration of the project's structure. -->
+    <!-- Application Structure Plan: A single-page application with a top navigation bar to switch between thematic sections: Overview, User Roles, Features, System Architecture, and Technologies. This tabbed structure is chosen over a long scroll to provide quick, logical access to different facets of the complex project plan. Key interactions include a role-switcher to dynamically display workflows and feature lists, and a clickable database schema explorer to make the technical details digestible. This design prioritizes user-guided exploration of the project's structure. -->
     <!-- Visualization & Content Choices: 
         - Report Info: User Roles & Features -> Goal: Compare -> Viz: Horizontal Bar Chart (Chart.js) -> Interaction: Hover for details -> Justification: Quick visual comparison of role scope.
         - Report Info: System-Wide Capabilities -> Goal: Inform/Proportion -> Viz: Donut Chart (Chart.js) -> Interaction: Clickable legend to filter table -> Justification: Show the breakdown of feature types.
         - Report Info: Workflows -> Goal: Organize/Explain -> Viz: HTML/CSS/Flexbox diagram -> Interaction: Displays based on selected user role -> Justification: Clear, step-by-step visual of processes without using restricted SVG/Mermaid.
-        - Report Info: Database Schema -> Goal: Organize/Explore -> Viz: Interactive list (HTML/JS) -> Interaction: Click to expand/collapse table details -> Justification: Manages complexity and avoids overwhelming the user with a wall of text. -->
+        - Report Info: Database Schema -> Goal: Organize/Explore -> Viz: Interactive list (HTML/JS) -> Interaction: Click to expand/collapse table details -> Justification: Manages complexity and avoids overwhelming the user with a wall of text. 
+        - Report Info: Technologies -> Goal: Inform -> Viz: List/Card layout -> Interaction: None (Static info) -> Justification: Clear presentation of the tech stack. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #F8F7F4;
             color: #333333;
-            -webkit-tap-highlight-color: transparent; /* Improve touch feedback */
+            -webkit-tap-highlight-color: transparent; 
+        }
+        .nav-container {
+            background-color: #ffffff;
+            padding: 0.5rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .nav-link {
-            transition: color 0.3s, border-color 0.3s;
-            white-space: nowrap; /* Prevent nav links from breaking mid-word */
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem 0.5rem 0.5rem;
+            margin-bottom: -1px; 
+            border-bottom: 3px solid transparent; 
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            color: #4B5563; /* gray-600 */
+            font-weight: 400; /* Regular weight */
+            line-height: 1.5; /* Ensure consistent line height */
+            border-radius: 0.25rem;
         }
-        .nav-link.active {
+        .nav-link:hover:not(.active) { 
             color: #4A6FA5;
             border-bottom-color: #4A6FA5;
+            background-color: #F0F2F5;
+        }
+        .nav-link.active {
+            color: #4A6FA5; 
+            border-bottom-color: #4A6FA5; 
+            font-weight: 600; /* semibold */
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;  
+            scrollbar-width: none;  
+        }
+
+        @media (max-width: 640px) {
+            .nav-container .flex {
+                justify-content: flex-start;
+                flex-wrap: nowrap;
+            }
+            .nav-link {
+                white-space: nowrap; padding: 0.75rem 0.5rem; margin: 0.1rem;
+            }
         }
         .card {
             background-color: #ffffff;
-            border-radius: 0.75rem; /* 12px */
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07); /* Softer shadow */
+            border-radius: 0.75rem; 
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07); 
             transition: box-shadow 0.3s, transform 0.3s;
         }
         .card:hover {
@@ -48,11 +85,11 @@
         .role-button.active {
             background-color: #4A6FA5 !important;
             color: #ffffff !important;
-            transform: translateY(-1px); /* Subtle active state */
+            transform: translateY(-1px); 
         }
         .workflow-step {
             position: relative;
-            padding-left: 1.75rem; /* Increased for better touch */
+            padding-left: 1.75rem; 
             padding-bottom: 1.25rem; 
         }
         .workflow-step:not(:last-child)::before {
@@ -61,57 +98,79 @@
             left: 0.45rem; 
             top: 0.45rem; 
             width: 2px;
-            height: calc(100% - 0.25rem); /* Adjust line height */
+            height: calc(100% - 0.25rem); 
             background-color: #D1D5DB; 
         }
         .workflow-step-dot {
             position: absolute;
             left: 0;
             top: 0.375rem; 
-            width: 1rem; /* 16px */
-            height: 1rem; /* 16px */
+            width: 1rem; 
+            height: 1rem; 
             border-radius: 9999px; 
             background-color: #4A6FA5; 
-            border: 3px solid #F8F7F4; /* Match body background for cutout effect */
+            border: 3px solid #F8F7F4; 
         }
         .db-table {
             cursor: pointer;
             transition: background-color 0.2s;
         }
         .db-table:hover {
-            background-color: #F0F2F5; /* Slightly different hover */
+            background-color: #F0F2F5; 
         }
         .db-table-details {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.4s ease-in-out; /* Smoother transition */
+            transition: max-height 0.4s ease-in-out; 
         }
         .chart-container {
             position: relative;
             width: 100%;
-            max-width: 500px; /* Reduced max-width for better focus */
+            max-width: 500px; 
             margin-left: auto;
             margin-right: auto;
-            height: 220px; /* Base height for mobile */
-            max-height: 280px; /* Max height for mobile */
+            height: 220px; 
+            max-height: 280px; 
         }
-         @media (min-width: 480px) { /* Custom breakpoint for slightly larger mobiles */
+         @media (min-width: 480px) { 
             .chart-container {
                 height: 250px;
                 max-height: 320px;
             }
         }
-         @media (min-width: 640px) { /* sm breakpoint */
+         @media (min-width: 640px) { 
             .chart-container {
                 height: 280px;
                 max-height: 350px;
             }
         }
-         @media (min-width: 768px) { /* md breakpoint */
+         @media (min-width: 768px) { 
             .chart-container {
                 height: 320px;
                 max-height: 380px;
             }
+        }
+        .tech-card {
+            background-color: #fff;
+            border: 1px solid #e5e7eb; 
+            border-radius: 0.5rem; 
+            padding: 1rem; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s ease;
+            height: 100%; 
+        }
+        .tech-card:hover {
+            border-color: #4A6FA5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transform: translateY(-3px);
+        }
+        .tech-icon {
+            font-size: 2rem; 
+            margin-bottom: 0.75rem; 
+            color: #4A6FA5;
         }
     </style>
 </head>
@@ -123,12 +182,15 @@
             <p class="mt-1 sm:mt-2 text-sm sm:text-md md:text-lg text-gray-600">Interactive Project Overview</p>
         </header>
 
-        <nav class="flex overflow-x-auto pb-2 mb-6 sm:mb-8 border-b justify-start sm:justify-center">
-            <button data-target="overview" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent active text-xs sm:text-sm">Overview</button>
-            <button data-target="roles" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent text-xs sm:text-sm">User Roles & Flows</button>
-            <button data-target="features" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent text-xs sm:text-sm">Features</button>
-            <button data-target="architecture" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent text-xs sm:text-sm">System Architecture</button>
-            <button data-target="impact" class="nav-link text-gray-600 hover:text-[#4A6FA5] py-2 px-3 sm:py-3 sm:px-4 block font-medium border-b-2 border-transparent text-xs sm:text-sm">Why It Matters</button>
+        <nav class="nav-container mb-6 sm:mb-8">
+            <div class="flex overflow-x-auto hide-scrollbar justify-start sm:justify-center">
+                <button data-target="overview" class="nav-link active text-xs sm:text-sm">Overview</button>
+                <button data-target="roles" class="nav-link text-xs sm:text-sm">User Roles & Flows</button>
+                <button data-target="features" class="nav-link text-xs sm:text-sm">Features</button>
+                <button data-target="architecture" class="nav-link text-xs sm:text-sm">System Architecture</button>
+                <button data-target="technologies" class="nav-link text-xs sm:text-sm">Technologies</button>
+                <button data-target="impact" class="nav-link text-xs sm:text-sm">Why It Matters</button>
+            </div>
         </nav>
 
         <main>
@@ -224,6 +286,55 @@
                      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4" id="db-schema-container">
                         
                      </div>
+                </div>
+            </section>
+
+            <section id="technologies" class="content-section hidden">
+                <div class="text-center mb-6 sm:mb-8">
+                     <h2 class="text-xl sm:text-2xl md:text-3xl font-bold">🛠️ Technologies Used</h2>
+                     <p class="mt-1 sm:mt-2 text-gray-600 text-xs sm:text-sm">The core technologies powering the Dastrings Note platform.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                    <div class="tech-card">
+                        <div class="tech-icon">🚀</div>
+                        <h3 class="text-md sm:text-lg font-semibold mb-1 text-gray-800">Next.js</h3>
+                        <p class="text-xs sm:text-sm text-gray-600">A React framework for building full-stack web applications, enabling SSR, SSG, and a rich PWA experience.</p>
+                    </div>
+                    <div class="tech-card">
+                        <div class="tech-icon">💾</div>
+                        <h3 class="text-md sm:text-lg font-semibold mb-1 text-gray-800">Supabase</h3>
+                        <p class="text-xs sm:text-sm text-gray-600">Open-source Firebase alternative: PostgreSQL database, Auth, Storage, and Edge Functions.</p>
+                    </div>
+                    <div class="tech-card">
+                        <div class="tech-icon">🎨</div>
+                        <h3 class="text-md sm:text-lg font-semibold mb-1 text-gray-800">Tailwind CSS</h3>
+                        <p class="text-xs sm:text-sm text-gray-600">A utility-first CSS framework for rapidly building responsive and custom user interfaces.</p>
+                    </div>
+                    <div class="tech-card">
+                        <div class="tech-icon">📊</div>
+                        <h3 class="text-md sm:text-lg font-semibold mb-1 text-gray-800">Chart.js</h3>
+                        <p class="text-xs sm:text-sm text-gray-600">JavaScript charting library for creating dynamic and interactive data visualizations.</p>
+                    </div>
+                     <div class="tech-card">
+                        <div class="tech-icon">📱</div>
+                        <h3 class="text-md sm:text-lg font-semibold mb-1 text-gray-800">PWA</h3>
+                        <p class="text-xs sm:text-sm text-gray-600">Progressive Web App capabilities for an app-like experience, offline support, and installability.</p>
+                    </div>
+                    <div class="tech-card">
+                        <div class="tech-icon">🔔</div>
+                        <h3 class="text-md sm:text-lg font-semibold mb-1 text-gray-800">Notifications</h3>
+                        <p class="text-xs sm:text-sm text-gray-600">In-app (Supabase Realtime) & email (Edge Functions + provider) for reminders and alerts.</p>
+                    </div>
+                    <div class="tech-card">
+                        <div class="tech-icon">🧠</div>
+                        <h3 class="text-md sm:text-lg font-semibold mb-1 text-gray-800">Gemini API</h3>
+                        <p class="text-xs sm:text-sm text-gray-600">Leveraged for AI-powered assistance in content generation (e.g., lesson objectives, questions).</p>
+                    </div>
+                    <div class="tech-card">
+                        <div class="tech-icon">☁️</div>
+                        <h3 class="text-md sm:text-lg font-semibold mb-1 text-gray-800">Vercel/Netlify</h3>
+                        <p class="text-xs sm:text-sm text-gray-600">Suggested platforms for deploying Next.js applications, offering seamless integration and scalability.</p>
+                    </div>
                 </div>
             </section>
 
@@ -384,12 +495,13 @@ document.addEventListener('DOMContentLoaded', () => {
         navLinks.forEach(link => {
             link.classList.toggle('active', link.dataset.target === targetId);
         });
-        // Scroll to top of content for better UX on tab switch
-        // window.scrollTo({ top: document.querySelector('nav').offsetHeight, behavior: 'smooth' });
     }
 
     navLinks.forEach(link => {
-        link.addEventListener('click', () => switchTab(link.dataset.target));
+        link.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            switchTab(link.dataset.target);
+        });
     });
 
     const roleButtons = document.querySelectorAll('.role-button');
@@ -446,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rolesChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: Object.values(appData.roles).map(r => r.title.replace(/🧑‍⚖️|🧑‍💼|👩‍🏫\s*/g, '').trim()), // Shorter labels
+                labels: Object.values(appData.roles).map(r => r.title.replace(/🧑‍⚖️|🧑‍💼|👩‍🏫\s*/g, '').trim()), 
                 datasets: [{
                     label: '# of Features',
                     data: Object.values(appData.roles).map(r => r.features.length),
@@ -455,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     borderWidth: 1,
                     borderRadius: 3,
                     barThickness: 'flex',
-                    maxBarThickness: 25, // Control bar thickness
+                    maxBarThickness: 25, 
                 }]
             },
             options: {
@@ -488,9 +600,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             autoSkip: false,
                             maxRotation: 0,
                             minRotation: 0,
-                            callback: function(value) { // Wrap long labels on y-axis
+                            callback: function(value) { 
                                 const label = this.getLabelForValue(value);
-                                if (label.length > 15) { // Adjust character limit as needed
+                                if (label.length > 15) { 
                                     return label.match(new RegExp('.{1,' + 15 + '}', 'g'));
                                 }
                                 return label;
@@ -499,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 layout: {
-                    padding: { top: 5, bottom: 5, left: 5, right: 10 } // Adjust padding
+                    padding: { top: 5, bottom: 5, left: 5, right: 10 } 
                 }
             }
         });
